@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Catch the Soap</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="soap-game.css">
+</head>
+<body>
+
+<div class="intro-screen" id="introScreen">
+  <h1><i class="fas fa-hands-wash"></i> Learn to Wash Hands!</h1>
+  <p>Choose your difficulty and start catching the soap!</p>
+  <div class="controls">
+    <select id="difficulty">
+      <option value="2">🟢 Easy</option>
+      <option value="4" selected>🟠 Medium</option>
+      <option value="6">🔴 Hard</option>
+    </select>
+    <button onclick="startGame()"><i class="fas fa-play"></i> Start Game</button>
+  </div>
+</div>
+
+<div class="game-wrapper" id="gameWrapper">
+  <h1>🧼 Catch the Soap!</h1>
+  <p class="instructions">Click the soap before time runs out!</p>
+  <div class="info-bar">
+    <span id="timer">Time: 30s</span>
+    <span id="score">Score: 0</span>
+  </div>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+</div>
+
+<div class="end-screen" id="endScreen">
+  <img src="https://cdn-icons-png.flaticon.com/512/1656/1656569.png" alt="Soap">
+  <h2>Great Job!</h2>
+  <p>You caught the soap <strong id="finalScore">0</strong> times!</p>
+</div>
+
+<!-- Sounds -->
+<audio id="popSound" src="Bubble Pop.mp3" preload="auto"></audio>
+<audio id="bgMusic" src="Background_Music.mp3" preload="auto" loop></audio>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const soapImg = new Image();
+  soapImg.src = "https://cdn-icons-png.flaticon.com/512/1656/1656569.png";
+
+  const intro = document.getElementById("introScreen");
+  const game = document.getElementById("gameWrapper");
+  const end = document.getElementById("endScreen");
+
+  const timerEl = document.getElementById("timer");
+  const scoreEl = document.getElementById("score");
+  const finalScoreEl = document.getElementById("finalScore");
+  const popSound = document.getElementById("popSound");
+  const bgMusic = document.getElementById("bgMusic");
+
+  let soapX = 100, soapY = 100, soapSize = 60;
+  let dx = 3, dy = 3, speedMultiplier = 4;
+  let timeLeft = 30;
+  let score = 0;
+  let gameRunning = false;
+  let timerInterval;
+
+  canvas.addEventListener("click", (e) => {
+    if (!gameRunning) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    if (
+      clickX >= soapX &&
+      clickX <= soapX + soapSize &&
+      clickY >= soapY &&
+      clickY <= soapY + soapSize
+    ) {
+      score++;
+      // ensure rapid replays
+      popSound.currentTime = 0;
+      popSound.play().catch(() => {});
+      scoreEl.textContent = "Score: " + score;
+    }
+  });
+
+  function update() {
+    if (!gameRunning) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(soapImg, soapX, soapY, soapSize, soapSize);
+
+    soapX += dx;
+    soapY += dy;
+
+    if (soapX <= 0 || soapX + soapSize >= canvas.width) dx = -dx;
+    if (soapY <= 0 || soapY + soapSize >= canvas.height) dy = -dy;
+
+    requestAnimationFrame(update);
+  }
+
+  function startGame() {
+    intro.style.display = "none";
+    game.style.display = "flex";
+    end.style.display = "none";
+
+    let difficulty = parseInt(document.getElementById("difficulty").value);
+    dx = difficulty;
+    dy = difficulty;
+
+    timeLeft = 30;
+    score = 0;
+    scoreEl.textContent = "Score: 0";
+    timerEl.textContent = "Time: 30s";
+
+    // Unlock click sound (some browsers require a gesture first)
+    popSound.play().then(() => {
+      popSound.pause();
+      popSound.currentTime = 0;
+    }).catch(() => {});
+
+    // Start background music
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(() => {});
+
+    gameRunning = true;
+    requestAnimationFrame(update);
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timerEl.textContent = `Time: ${timeLeft}s`;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        gameRunning = false;
+        showEndScreen();
+      }
+    }, 1000);
+  }
+
+  function showEndScreen() {
+    // stop background music
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+
+    game.style.display = "none";
+    end.style.display = "flex";
+    finalScoreEl.textContent = score;
+  }
+</script>
+
+</body>
+</html>
